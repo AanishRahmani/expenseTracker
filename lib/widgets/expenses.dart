@@ -1,107 +1,114 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:nativeapp/widgets/charts/chart.dart';
-import 'package:nativeapp/widgets/expenses_list.dart';
 import 'package:nativeapp/models/expense.dart';
+import 'package:nativeapp/widgets/expenses_list.dart';
 import 'package:nativeapp/widgets/new_expense.dart';
+import 'package:nativeapp/widgets/charts/chart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Expenses extends StatefulWidget {
   const Expenses({super.key});
 
   @override
-  State<StatefulWidget> createState() {
-    return _ExpenseState();
-  }
+  State<Expenses> createState() => _ExpensesState();
 }
 
-class _ExpenseState extends State<Expenses> {
-  final List<Expense> _registeredExpenses = [
-    Expense(
-        title: 'fluter',
-        amount: 19,
-        date: DateTime.now(),
-        category: Category.work),
-    Expense(
-        title: 'movie',
-        amount: 1.55,
-        date: DateTime.now(),
-        category: Category.leisure)
-  ];
+class _ExpensesState extends State<Expenses> {
+  List<Expense> _expenses = [];
 
-  void _openAddExpenseOverlay() {
-    showModalBottomSheet(
-      useSafeArea: true,
-      isScrollControlled: true,
-      context: context,
-      builder: (ctx) => NewExpense(
-        onAddExpense: _addExpense,
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _loadExpenses(); // Load expenses on startup
   }
 
+  // Function to load expenses from SharedPreferences
+  Future<void> _loadExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedExpenses = prefs.getStringList('expenses') ?? [];
+    setState(() {
+      _expenses =
+          savedExpenses.map((e) => Expense.fromJson(jsonDecode(e))).toList();
+    });
+  }
+
+  // Function to save expenses to SharedPreferences
+  Future<void> _saveExpenses() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expenseData = _expenses.map((e) => jsonEncode(e.toJson())).toList();
+    await prefs.setStringList('expenses', expenseData);
+  }
+
+  // Function to add an expense
   void _addExpense(Expense expense) {
     setState(() {
-      _registeredExpenses.add(expense);
+      _expenses.add(expense);
     });
+    _saveExpenses(); // Save updated expenses
   }
 
+  // Function to remove an expense
   void _removeExpense(Expense expense) {
-    final expenseIndex = _registeredExpenses.indexOf(expense);
-
     setState(() {
-      _registeredExpenses.remove(expense);
+      _expenses.remove(expense);
     });
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        duration: const Duration(seconds: 3),
-        action: SnackBarAction(
-            label: 'undo',
-            onPressed: () {
-              setState(() {
-                _registeredExpenses.insert(expenseIndex, expense);
-              });
-            }),
-        content: const Text('Expense deleted')));
+    _saveExpenses(); // Save updated expenses
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
-    Widget mainContent = const Center(
-      child: Text('No expense found ,start adding'),
-    );
-
-    if (_registeredExpenses.isNotEmpty) {
-      mainContent = ExpensesList(
-        expenses: _registeredExpenses,
-        onRemoveExpense: _removeExpense,
-      );
-    }
-
-    return SafeArea(
-      child: Scaffold(
-          appBar: AppBar(
-            title: const Text('Expense tracker'),
-            actions: [
-              IconButton(
-                onPressed: _openAddExpenseOverlay,
-                icon: const Icon(Icons.add),
-              )
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Expenses Tracker'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.clear_all),
+            onPressed: () {
+              setState(() {
+                _expenses.clear();
+              });
+              _saveExpenses(); // Clear saved expenses
+            },
           ),
-          body: width < 600
-              ? Column(
-                  children: [
-                    Chart(expenses: _registeredExpenses),
-                    Expanded(child: mainContent)
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(child: Chart(expenses: _registeredExpenses)),
-                    Expanded(child: mainContent)
-                  ],
-                )),
+        ],
+      ),
+      body: Column(
+        children: [
+          // The chart at the top, fixed
+          SizedBox(
+            height: 300,
+            child: Chart(expenses: _expenses), // Display the chart
+          ),
+
+          // The ListView of expenses
+          Expanded(
+            child: _expenses.isEmpty
+                ? const Center(
+                    child: Text('No expenses added yet!'),
+                  )
+                : ExpensesList(
+                    expenses: _expenses, // Pass the entire list of expenses
+                    onRemoveExpense: _removeExpense,
+                  ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _openNewExpenseModal();
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _openNewExpenseModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => NewExpense(
+        onAddExpense: _addExpense,
+      ),
     );
   }
 }

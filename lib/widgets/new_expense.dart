@@ -16,36 +16,41 @@ class _NewExpenseState extends State<NewExpense> {
   DateTime? _selectedDate;
   Category _selectedCategory = Category.leisure;
 
+  // Opens the date picker and updates the selected date
   void _presentDatePicker() async {
     final now = DateTime.now();
-    final fd = DateTime(now.year - 1, now.month, now.day);
+    final oneYearAgo = DateTime(now.year - 1, now.month, now.day);
+
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: now,
-      firstDate: fd,
+      firstDate: oneYearAgo,
       lastDate: now,
     );
-    setState(() {
-      _selectedDate = pickedDate;
-    });
+
+    if (pickedDate != null) {
+      setState(() {
+        _selectedDate = pickedDate;
+      });
+    }
   }
 
+  // Validates and submits expense data
   void _submitExpenseData() {
     final enteredAmount = double.tryParse(_amountController.text);
-    final amountInvalid = enteredAmount == null || enteredAmount <= 0;
+    final isAmountInvalid = enteredAmount == null || enteredAmount <= 0;
+
     if (_titleController.text.trim().isEmpty ||
-        amountInvalid ||
+        isAmountInvalid ||
         _selectedDate == null) {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text("Invalid Input"),
-          content: const Text('Please make sure to enter correct values'),
+          content: const Text('Please enter valid values for all fields.'),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-              },
+              onPressed: () => Navigator.pop(ctx),
               child: const Text('Okay'),
             ),
           ],
@@ -53,6 +58,7 @@ class _NewExpenseState extends State<NewExpense> {
       );
       return;
     }
+
     widget.onAddExpense(
       Expense(
         title: _titleController.text,
@@ -61,7 +67,8 @@ class _NewExpenseState extends State<NewExpense> {
         category: _selectedCategory,
       ),
     );
-    Navigator.pop(context);
+
+    Navigator.pop(context); // Close the modal after saving
   }
 
   @override
@@ -83,8 +90,9 @@ class _NewExpenseState extends State<NewExpense> {
             child: Padding(
               padding: EdgeInsets.fromLTRB(16, 48, 16, keyboardSpace + 16),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Title input field
                   TextField(
                     controller: _titleController,
                     maxLength: 50,
@@ -92,6 +100,8 @@ class _NewExpenseState extends State<NewExpense> {
                       label: Text('Title'),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  // Amount input and date picker row
                   Row(
                     children: [
                       Expanded(
@@ -99,7 +109,7 @@ class _NewExpenseState extends State<NewExpense> {
                           controller: _amountController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
-                            prefixText: 'Rs',
+                            prefixText: 'Rs ',
                             label: Text('Amount'),
                           ),
                         ),
@@ -109,9 +119,11 @@ class _NewExpenseState extends State<NewExpense> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Text(_selectedDate == null
-                                ? 'No Date Selected'
-                                : formatter.format(_selectedDate!)),
+                            Text(
+                              _selectedDate == null
+                                  ? 'No Date Selected'
+                                  : formatter.format(_selectedDate!),
+                            ),
                             IconButton(
                               onPressed: _presentDatePicker,
                               icon: const Icon(Icons.calendar_month),
@@ -122,6 +134,7 @@ class _NewExpenseState extends State<NewExpense> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  // Category dropdown and action buttons
                   Row(
                     children: [
                       Expanded(
@@ -136,19 +149,17 @@ class _NewExpenseState extends State<NewExpense> {
                               )
                               .toList(),
                           onChanged: (value) {
-                            if (value == null) return;
-                            setState(() {
-                              _selectedCategory = value;
-                            });
+                            if (value != null) {
+                              setState(() {
+                                _selectedCategory = value;
+                              });
+                            }
                           },
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      const Spacer(), // Aligns the buttons to the right
+                      const Spacer(),
                       TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
+                        onPressed: () => Navigator.pop(context),
                         child: const Text('Cancel'),
                       ),
                       ElevatedButton(

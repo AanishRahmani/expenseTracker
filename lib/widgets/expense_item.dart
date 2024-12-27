@@ -9,6 +9,11 @@ class ExpenseItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      elevation: 4,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: 20,
@@ -19,26 +24,39 @@ class ExpenseItem extends StatelessWidget {
           children: [
             Text(
               expense.title,
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(
-              height: 4,
+              height: 8,
             ),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Rs ${expense.amount.toStringAsFixed(2)}'),
-                const Spacer(),
+                Text(
+                  'Rs ${expense.amount.toStringAsFixed(2)}',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 Row(
                   children: [
-                    Icon(categoryIcon[expense.category]),
-                    const SizedBox(
-                      width: 8,
+                    Icon(
+                      categoryIcon[expense.category] ??
+                          Icons.help_outline, // Fallback for missing icons
+                      color: Theme.of(context).colorScheme.primary,
                     ),
-                    Text(expense.formatDate)
+                    const SizedBox(width: 8),
+                    Text(
+                      expense.formatDate,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
                   ],
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
